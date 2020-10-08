@@ -30,6 +30,8 @@ class StockPicking(models.Model):
 
     def _check_action_pack_operation_auto_fill_allowed(self):
         if any(not r.action_pack_op_auto_fill_allowed for r in self):
+            if self.env.context.get("silent_error"):
+                return False
             raise UserError(
                 _(
                     "Filling the operations automatically is not possible, "
@@ -37,6 +39,7 @@ class StockPicking(models.Model):
                     "(Partially available or available)."
                 )
             )
+        return True
 
     def action_pack_operation_auto_fill(self):
         """
@@ -46,7 +49,9 @@ class StockPicking(models.Model):
             the no product is set on the operation.
             - the operation has no qty_done yet.
         """
-        self._check_action_pack_operation_auto_fill_allowed()
+        auto_fill_res = self._check_action_pack_operation_auto_fill_allowed()
+        if not auto_fill_res:
+            return
         operations = self.mapped("move_line_ids")
         operations_to_auto_fill = operations.filtered(
             lambda op: (
