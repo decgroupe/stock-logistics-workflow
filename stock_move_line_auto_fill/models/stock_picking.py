@@ -45,7 +45,13 @@ class StockPicking(models.Model):
             the no product is set on the operation.
             - the operation has no qty_done yet.
         """
-        self._check_action_pack_operation_auto_fill_allowed()
+        if self.env.context.get('silent_error'):
+            try:
+                self._check_action_pack_operation_auto_fill_allowed()
+            except UserError:
+                return None
+        else:
+            self._check_action_pack_operation_auto_fill_allowed()
         operations = self.mapped('move_line_ids')
         operations_to_auto_fill = operations.filtered(lambda op: (
             op.product_id and not op.qty_done and
